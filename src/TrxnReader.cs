@@ -3,20 +3,24 @@ using Microsoft.VisualBasic.FileIO;
 using System.Linq;
 using System.Collections.Generic;
 
-namespace TransactionCat
+namespace FinanceExcel
 {
     public static class TrxnReader
     {
-        public static List<Trxn> GetTrxns()
+        public static List<SimpleTrxn> GetSimpleTrxns()
         {
             var folderExists = System.IO.Directory.Exists("transactions");
             if (!folderExists)
             {
                 Console.WriteLine("missing transactions folder");
-                return null;
+                return new List<SimpleTrxn>();
             }
             var filenames = System.IO.Directory.GetFiles("transactions");
-            var trxns = new List<Trxn>();
+            if (filenames.Count() == 0){
+                Console.WriteLine("no files in transactions folder");
+                return new List<SimpleTrxn>();
+            }
+            var trxns = new List<SimpleTrxn>();
             foreach (var filename in filenames)
             {
                 Console.WriteLine($"Loading Transactions from " + filename);
@@ -58,21 +62,19 @@ namespace TransactionCat
                                 }
                                 else
                                 {
-                                    decimal amount;
-                                    try{
-                                        amount = decimal.Parse(currentRow[amountIndex].Replace("$", ""));
-                                    } catch(Exception){
+                                    var success = decimal.TryParse(currentRow[amountIndex].Replace("$", ""), out var amount);
+                                    if(!success){
                                         Console.WriteLine($"Error parsing amount '{currentRow[amountIndex]}' in row {rowNum}");
                                         continue;
                                     }
                                     var date = DateTime.Parse(currentRow[dateIndex]);
                                     if (amount != 0){
-                                        trxns.Add(new Trxn(currentRow[nameIndex], date, amount));
+                                        trxns.Add(new SimpleTrxn(currentRow[nameIndex], date, amount));
                                     }
                                 }
                             }
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
 
                         }
@@ -82,24 +84,5 @@ namespace TransactionCat
             }
             return trxns;
         }
-    }
-
-
-
-    public class Trxn
-    {
-        public string Name { get; set; }
-        public DateTime Date { get; set; }
-        public decimal Amount { get; set; }
-        public string? Category { get; set; }
-        public string? SubCategory { get; set; }
-
-        public Trxn(string name, DateTime date, decimal amount)
-        {
-            Name = name;
-            Date = date;
-            Amount = amount;
-        }
-
     }
 }

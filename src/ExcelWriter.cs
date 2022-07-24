@@ -5,13 +5,13 @@ using OfficeOpenXml.Drawing.Chart;
 using System.Linq;
 using System.Collections.Generic;
 
-namespace TransactionCat
+namespace FinanceExcel
 {
-    public static class ExcelWriter3
+    public static class ExcelWriter
     {
-        public static void WriteToExcel(List<Trxn> trxns)
+        public static void WriteToExcel(List<TrxnRow> trxnRows)
         {
-            var filename = "report3.xlsx";
+            var filename = "report.xlsx";
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
             using (ExcelPackage excelPackage = new ExcelPackage())
             {
@@ -20,21 +20,65 @@ namespace TransactionCat
                 transactionsSheet.Cells[1, 1].Value = "date";
                 transactionsSheet.Cells[1, 2].Value = "name";
                 transactionsSheet.Cells[1, 3].Value = "amount";
-                transactionsSheet.Cells[1, 4].Value = "catagory";
-                transactionsSheet.Cells[1, 5].Value = "subcatagory";
-                for (var i = 0; i < trxns.Count(); i++)
+                transactionsSheet.Cells[1, 4].Value = "category";
+                transactionsSheet.Cells[1, 5].Value = "subcategory";
+                transactionsSheet.Cells[1, 6].Value = "notes";
+                transactionsSheet.Cells[1, 7].Value = "modified";
+                transactionsSheet.Cells[1, 8].Value = "insert date";
+                transactionsSheet.Cells[1, 9].Value = "O date";
+                transactionsSheet.Cells[1, 10].Value = "O name";
+                transactionsSheet.Cells[1, 11].Value = "O amount";
+                transactionsSheet.Cells[1, 12].Value = "O category";
+                transactionsSheet.Cells[1, 13].Value = "O subcategory";
+
+                var borderColor = System.Drawing.Color.FromArgb(208, 206, 206);
+                var modifiedColor = System.Drawing.Color.FromArgb(255, 255, 225);
+                for (var i = 0; i < trxnRows.Count(); i++)
                 {
                     var rowIndex = i + 2;
-                    transactionsSheet.Cells[rowIndex, 1].Value = trxns[i].Date;
+                    transactionsSheet.Cells[rowIndex, 1].Value = trxnRows[i].Trxn.Date;
                     transactionsSheet.Cells[rowIndex, 1].Style.Numberformat.Format = "yyyy-mm-dd";
-                    transactionsSheet.Cells[rowIndex, 2].Value = trxns[i].Name;
-                    transactionsSheet.Cells[rowIndex, 3].Value = trxns[i].Amount;
-                    transactionsSheet.Cells[rowIndex, 4].Value = trxns[i].Category;
-                    transactionsSheet.Cells[rowIndex, 5].Value = trxns[i].SubCategory;
+                    transactionsSheet.Cells[rowIndex, 2].Value = trxnRows[i].Trxn.Name;
+                    transactionsSheet.Cells[rowIndex, 3].Value = trxnRows[i].Trxn.Amount;
+                    transactionsSheet.Cells[rowIndex, 4].Value = trxnRows[i].Trxn.Category;
+                    transactionsSheet.Cells[rowIndex, 5].Value = trxnRows[i].Trxn.SubCategory;
+
+                    transactionsSheet.Cells[rowIndex, 6].Value = trxnRows[i].Notes;
+                    transactionsSheet.Cells[rowIndex, 7].Value = trxnRows[i].Modifed;
+                    transactionsSheet.Cells[rowIndex, 8].Value = trxnRows[i].insertDate;
+                    transactionsSheet.Cells[rowIndex, 8].Style.Numberformat.Format = "yyyy-mm-dd";
+
+                    if (trxnRows[i].Originaltrxn != null){
+                        transactionsSheet.Cells[rowIndex, 9].Value = trxnRows[i].Originaltrxn!.Date;
+                        transactionsSheet.Cells[rowIndex, 9].Style.Numberformat.Format = "yyyy-mm-dd";
+                        transactionsSheet.Cells[rowIndex, 10].Value = trxnRows[i].Originaltrxn!.Name;
+                        transactionsSheet.Cells[rowIndex, 11].Value = trxnRows[i].Originaltrxn!.Amount;
+                        transactionsSheet.Cells[rowIndex, 12].Value = trxnRows[i].Originaltrxn!.Category;
+                        transactionsSheet.Cells[rowIndex, 13].Value = trxnRows[i].Originaltrxn!.SubCategory;
+                    }
+
+                    if (trxnRows[i].Modifed == "yes"){
+                        transactionsSheet.Cells[rowIndex, 1, rowIndex, 13].Style.Fill.PatternType = ExcelFillStyle.Solid;
+                        transactionsSheet.Cells[rowIndex, 1, rowIndex, 13].Style.Fill.BackgroundColor.SetColor(modifiedColor);
+                        transactionsSheet.Cells[rowIndex, 1, rowIndex, 13].Style.Border.Top.Style = ExcelBorderStyle.Thin;
+                        transactionsSheet.Cells[rowIndex, 1, rowIndex, 13].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                        transactionsSheet.Cells[rowIndex, 1, rowIndex, 13].Style.Border.Left.Style = ExcelBorderStyle.Thin;
+                        transactionsSheet.Cells[rowIndex, 1, rowIndex, 13].Style.Border.Right.Style = ExcelBorderStyle.Thin;
+                        transactionsSheet.Cells[rowIndex, 1, rowIndex, 13].Style.Border.Top.Color.SetColor(borderColor);
+                        transactionsSheet.Cells[rowIndex, 1, rowIndex, 13].Style.Border.Bottom.Color.SetColor(borderColor);
+                        transactionsSheet.Cells[rowIndex, 1, rowIndex, 13].Style.Border.Left.Color.SetColor(borderColor);
+                        transactionsSheet.Cells[rowIndex, 1, rowIndex, 13].Style.Border.Right.Color.SetColor(borderColor);
+                    }
                 }
                 transactionsSheet.Cells.AutoFitColumns(1, 40);
+                foreach(var column in transactionsSheet.Columns.Skip(6).Take(7)){
+                    column.Hidden = true;
+                }
 
-                AddCatagoryLinesSheet(excelPackage, trxns);
+
+                var trxns = trxnRows.Select(z => z.Trxn).ToList();
+
+                AddCategoryLinesSheet(excelPackage, trxns);
 
                 var subCatSheet = excelPackage.Workbook.Worksheets.Add("subcat");
                 subCatSheet.Row(1).Style.Font.Bold = true;
@@ -76,20 +120,20 @@ namespace TransactionCat
                 lineChart.SetPosition(months.Count() + 2, 0, 0, 0);
                 lineChart.SetSize(1500, 400);
 
-                AddSubCatagoryComparisonSheet(excelPackage, trxns);
+                AddSubCategoryComparisonSheet(excelPackage, trxns);
 
                 excelPackage.SaveAs(filename);
             }
         }
 
-        private static void AddCatagoryLinesSheet(ExcelPackage excelPackage, List<Trxn> trxns){
+        private static void AddCategoryLinesSheet(ExcelPackage excelPackage, List<Trxn> trxns){
             var includedTrxns = trxns.ToList();
             if (includedTrxns.First().Date.Day < 22)
             { //assume there's half a month included
                 var firstOfMonth = new DateTime(includedTrxns.First().Date.Year, includedTrxns.First().Date.Month, 1);
                 includedTrxns = includedTrxns.Where(z => z.Date < firstOfMonth).ToList();
             }
-            var catSheet = excelPackage.Workbook.Worksheets.Add("catagory lines");
+            var catSheet = excelPackage.Workbook.Worksheets.Add("category lines");
             catSheet.Row(1).Style.Font.Bold = true;
             catSheet.Column(1).Style.Font.Bold = true;
             catSheet.Cells[1, 1].Value = "month";
@@ -151,7 +195,7 @@ namespace TransactionCat
             // pieChart.SetPosition(4, 0, 2, 0);
         }
 
-        private static void AddSubCatagoryComparisonSheet(ExcelPackage excelPackage, List<Trxn> trxns)
+        private static void AddSubCategoryComparisonSheet(ExcelPackage excelPackage, List<Trxn> trxns)
         {
             var subCatSheet = excelPackage.Workbook.Worksheets.Add("change this month");
             var includedTrxns = trxns.ToList();
@@ -178,7 +222,7 @@ namespace TransactionCat
             var subcats = includedTrxns.OrderBy(z => z.Category).Select(z => z.SubCategory!).Distinct().ToList();
             for (var i = 0; i < subcats.Count(); i++)
             {
-                AddSubCatagoryComparisonSheetHelper(
+                AddSubCategoryComparisonSheetHelper(
                     subCatSheet,
                     includedTrxns.Where(z => z.SubCategory == subcats[i]).ToList(),
                     i + 2,
@@ -187,7 +231,7 @@ namespace TransactionCat
                     currentMonth
                     );
             }
-            AddSubCatagoryComparisonSheetHelper(
+            AddSubCategoryComparisonSheetHelper(
                     subCatSheet,
                     includedTrxns.ToList(),
                     subcats.Count() + 2,
@@ -199,7 +243,7 @@ namespace TransactionCat
         }
 
         //made this a function to make it easier to calculate the total
-        private static void AddSubCatagoryComparisonSheetHelper(
+        private static void AddSubCategoryComparisonSheetHelper(
             ExcelWorksheet sheet,
             List<Trxn> someTrxns,
             int rowIndex,

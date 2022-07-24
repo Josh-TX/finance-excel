@@ -1,4 +1,4 @@
-namespace TransactionCat{
+namespace FinanceExcel{
     public record CategoryRule(
         List<string> Contains, 
         List<string> NotContains,

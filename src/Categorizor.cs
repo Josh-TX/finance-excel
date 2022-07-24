@@ -3,7 +3,7 @@ using Microsoft.VisualBasic.FileIO;
 using System.Linq;
 using System.Collections.Generic;
 
-namespace TransactionCat
+namespace FinanceExcel
 {
     public static class Categorizor
     {
@@ -86,26 +86,6 @@ namespace TransactionCat
                 }
             }
             return rules;
-        }
-
-        public static void ApplyCategoryRules(List<Trxn> trxns, List<CategoryRule> rules)
-        {
-            foreach (var trxn in trxns)
-            {
-                var name = trxn.Name.ToLower();
-                var rule = rules.FirstOrDefault(rule => rule.Contains.Any(z => z.Length > 0 && name.Contains(z)) && rule.NotContains.All(z => z.Length == 0 || !name.Contains(z)));
-                if (rule == null)
-                {
-                    Console.WriteLine($"No catagory found for name: {trxn.Name}");
-                    trxn.Category = "uncatagorized";
-                    trxn.SubCategory = "uncatagorized";
-                }
-                else
-                {
-                    trxn.Category = rule.Category;
-                    trxn.SubCategory = !string.IsNullOrEmpty(rule.Subcategory) ? rule.Subcategory : rule.Category;
-                }
-            }
         }
     }
 }
