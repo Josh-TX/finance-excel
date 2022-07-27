@@ -58,67 +58,62 @@ namespace FinanceExcel
                     }
 
                     if (trxnRows[i].Modifed == "yes"){
-                        transactionsSheet.Cells[rowIndex, 1, rowIndex, 13].Style.Fill.PatternType = ExcelFillStyle.Solid;
-                        transactionsSheet.Cells[rowIndex, 1, rowIndex, 13].Style.Fill.BackgroundColor.SetColor(modifiedColor);
-                        transactionsSheet.Cells[rowIndex, 1, rowIndex, 13].Style.Border.Top.Style = ExcelBorderStyle.Thin;
-                        transactionsSheet.Cells[rowIndex, 1, rowIndex, 13].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
-                        transactionsSheet.Cells[rowIndex, 1, rowIndex, 13].Style.Border.Left.Style = ExcelBorderStyle.Thin;
-                        transactionsSheet.Cells[rowIndex, 1, rowIndex, 13].Style.Border.Right.Style = ExcelBorderStyle.Thin;
-                        transactionsSheet.Cells[rowIndex, 1, rowIndex, 13].Style.Border.Top.Color.SetColor(borderColor);
-                        transactionsSheet.Cells[rowIndex, 1, rowIndex, 13].Style.Border.Bottom.Color.SetColor(borderColor);
-                        transactionsSheet.Cells[rowIndex, 1, rowIndex, 13].Style.Border.Left.Color.SetColor(borderColor);
-                        transactionsSheet.Cells[rowIndex, 1, rowIndex, 13].Style.Border.Right.Color.SetColor(borderColor);
+                        ChartHelpers.DrawBackgroundAndBorders(transactionsSheet, modifiedColor, rowIndex, 1, rowIndex, 13);
                     }
                 }
                 transactionsSheet.Cells.AutoFitColumns(1, 40);
                 foreach(var column in transactionsSheet.Columns.Skip(6).Take(7)){
                     column.Hidden = true;
                 }
-
-
                 var trxns = trxnRows.Select(z => z.Trxn).ToList();
+                var catsheet = excelPackage.Workbook.Worksheets.Add("categories");
+                var catSheetTrxns = trxns.Select(trxn => new CatSheetTrxn(trxn.Name, trxn.Date, trxn.Amount, trxn.Category, null)).ToList();
+                CatSheetWriter.AddCategorySheet(catsheet, catSheetTrxns);
+                
+                var subcatsheet = excelPackage.Workbook.Worksheets.Add("subcategories");
+                var subcatSheetTrxns = trxns.Select(trxn => new CatSheetTrxn(trxn.Name, trxn.Date, trxn.Amount, trxn.SubCategory, trxn.Category)).ToList();
+                CatSheetWriter.AddCategorySheet(subcatsheet, subcatSheetTrxns);
 
-                AddCategoryLinesSheet(excelPackage, trxns);
+                // var subCatSheet = excelPackage.Workbook.Worksheets.Add("subcat");
+                // subCatSheet.Row(1).Style.Font.Bold = true;
+                // subCatSheet.Column(1).Style.Font.Bold = true;
+                // subCatSheet.Cells[1, 1].Value = "month";
+                // var subcatMonthGroups = trxns.GroupBy(z => new
+                // {
+                //     Month = new DateTime(z.Date.Year, z.Date.Month, 1),
+                //     z.SubCategory
+                // }).OrderByDescending(z => z.Key.Month).ToList();
+                // var months = subcatMonthGroups.Select(z => z.Key.Month).Distinct().ToList();
+                // var subcats = subcatMonthGroups.Select(z => z.Key.SubCategory).Distinct().ToList();
+                // for (var i = 0; i < subcats.Count(); i++)
+                // {
+                //     var colIndex = i + 2;
+                //     subCatSheet.Cells[1, colIndex].Value = subcats[i];
+                // }
+                // for (var i = 0; i < months.Count(); i++)
+                // {
+                //     var rowIndex = i + 2;
+                //     subCatSheet.Cells[rowIndex, 1].Value = months[i];
+                //     subCatSheet.Cells[rowIndex, 1].Style.Numberformat.Format = "yyyy-mm";
+                //     for (var j = 0; j < subcats.Count(); j++)
+                //     {
+                //         var colIndex = j + 2;
+                //         var matchingGroup = subcatMonthGroups.FirstOrDefault(z => months[i] == z.Key.Month && subcats[j] == z.Key.SubCategory);
+                //         subCatSheet.Cells[rowIndex, colIndex].Value = matchingGroup?.Sum(z => z.Amount) ?? 0;
+                //     }
+                // }
+                // subCatSheet.Cells.AutoFitColumns(1, 40);
 
-                var subCatSheet = excelPackage.Workbook.Worksheets.Add("subcat");
-                subCatSheet.Row(1).Style.Font.Bold = true;
-                subCatSheet.Column(1).Style.Font.Bold = true;
-                subCatSheet.Cells[1, 1].Value = "month";
-                var subcatMonthGroups = trxns.GroupBy(z => new
-                {
-                    Month = new DateTime(z.Date.Year, z.Date.Month, 1),
-                    z.SubCategory
-                }).OrderByDescending(z => z.Key.Month).ToList();
-                var months = subcatMonthGroups.Select(z => z.Key.Month).Distinct().ToList();
-                var subcats = subcatMonthGroups.Select(z => z.Key.SubCategory).Distinct().ToList();
-                for (var i = 0; i < subcats.Count(); i++)
-                {
-                    var colIndex = i + 2;
-                    subCatSheet.Cells[1, colIndex].Value = subcats[i];
-                }
-                for (var i = 0; i < months.Count(); i++)
-                {
-                    var rowIndex = i + 2;
-                    subCatSheet.Cells[rowIndex, 1].Value = months[i];
-                    subCatSheet.Cells[rowIndex, 1].Style.Numberformat.Format = "yyyy-mm";
-                    for (var j = 0; j < subcats.Count(); j++)
-                    {
-                        var colIndex = j + 2;
-                        var matchingGroup = subcatMonthGroups.FirstOrDefault(z => months[i] == z.Key.Month && subcats[j] == z.Key.SubCategory);
-                        subCatSheet.Cells[rowIndex, colIndex].Value = matchingGroup?.Sum(z => z.Amount) ?? 0;
-                    }
-                }
-                subCatSheet.Cells.AutoFitColumns(1, 40);
+                // ExcelLineChart lineChart = (ExcelLineChart)subCatSheet.Drawings.AddChart("lineChart", eChartType.Line);
+                // for (var i = 0; i < subcats.Count(); i++)
+                // {
+                //     var colIndex = i + 2;
+                //     lineChart.Series.Add(ExcelRange.GetAddress(2, colIndex, 1 + months.Count(), colIndex), ExcelRange.GetAddress(2, 1, 1 + months.Count(), 1));
+                //     lineChart.Series[i].Header = subcats[i];
+                // }
+                // lineChart.SetPosition(months.Count() + 2, 0, 0, 0);
+                // lineChart.SetSize(1500, 400);
 
-                ExcelLineChart lineChart = (ExcelLineChart)subCatSheet.Drawings.AddChart("lineChart", eChartType.Line);
-                for (var i = 0; i < subcats.Count(); i++)
-                {
-                    var colIndex = i + 2;
-                    lineChart.Series.Add(ExcelRange.GetAddress(2, colIndex, 1 + months.Count(), colIndex), ExcelRange.GetAddress(2, 1, 1 + months.Count(), 1));
-                    lineChart.Series[i].Header = subcats[i];
-                }
-                lineChart.SetPosition(months.Count() + 2, 0, 0, 0);
-                lineChart.SetSize(1500, 400);
 
                 AddSubCategoryComparisonSheet(excelPackage, trxns);
 
@@ -129,11 +124,11 @@ namespace FinanceExcel
         private static void AddCategoryLinesSheet(ExcelPackage excelPackage, List<Trxn> trxns){
             var includedTrxns = trxns.ToList();
             if (includedTrxns.First().Date.Day < 22)
-            { //assume there's half a month included
+            { //if the latest trxn was before the 22nd, then the latest month will be the month PRIOR to the latest trxn. 
                 var firstOfMonth = new DateTime(includedTrxns.First().Date.Year, includedTrxns.First().Date.Month, 1);
                 includedTrxns = includedTrxns.Where(z => z.Date < firstOfMonth).ToList();
             }
-            var catSheet = excelPackage.Workbook.Worksheets.Add("category lines");
+            var catSheet = excelPackage.Workbook.Worksheets.Add("categories");
             catSheet.Row(1).Style.Font.Bold = true;
             catSheet.Column(1).Style.Font.Bold = true;
             catSheet.Cells[1, 1].Value = "month";
